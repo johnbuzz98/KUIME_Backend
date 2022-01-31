@@ -6,3 +6,7 @@ Jinja2 @ file:///home/conda/feedstock_root/build_artifacts/jinja2_1636510082894/
 MarkupSafe @ file:///Users/runner/miniforge3/conda-bld/markupsafe_1635833843092/work
 psycopg2 @ file:///Users/runner/miniforge3/conda-bld/psycopg2-split_1640944573966/work
 Werkzeug @ file:///home/conda/feedstock_root/build_artifacts/werkzeug_1642714909499/work
+
+flask~=2.0.2
+psycopg2~=2.9.3
+python-dotenv~=0.19.2
