@@ -1,54 +1,69 @@
 import os
 from dotenv import load_dotenv
-import traceback
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 load_dotenv(verbose=True)
 
 
-class DBManager():
-
+class Databases():
     def __init__(self):
-        self.conn = self.__connect()
-        self.HOST = os.getenv('HOST')
-        self.PORT = os.getenv('PORT')
-        self.DBNAME = os.getenv('DBNAME')
-        self.USER = os.getenv('USER')
-        self.PWD = os.getenv('PWD')
+        self.db = psycopg2.connect(host=os.getenv('HOST'),
+                                   dbname=os.getenv('DBNAME'),
+                                   user=os.getenv('USER'),
+                                   password=os.getenv('PWD'),
+                                   port=os.getenv('PORT'))
+        self.cursor = self.db.cursor()
 
-    def teardown(self):
-        if self.conn:
-            self.conn.close()
-            self.conn = None
+    def __del__(self):
+        self.db.close()
+        self.cursor.close()
 
-    def __connect(self):
-        return psycopg2.connect(host=self.HOST, port=self.PORT, dbname=self.DBNAME,
-                                user=self.USER, password=self.PWD)
+    def execute(self, query, args={}):
+        self.cursor.execute(query, args)
+        row = self.cursor.fetchall()
+        return row
 
-    def __read_query(self, query_filename):
-        query = ''
-        with open(query_filename, 'r') as query_file:
-            query = query_file.read()
+    def commit(self):
+        self.cursor.commit()
 
-        return query
 
-    def __execute(self, query):
-        if not self.conn:
-            self.conn = self.__connect()
-        cur = self.conn.cursor(cursor_factory=RealDictCursor)
-
+class CRUD(Databases):
+    def insertDB(self, schema, table, colum, data):
+        sql = " INSERT INTO {schema}.{table}({colum}) VALUES ('{data}') ;".format(schema=schema, table=table,
+                                                                                  colum=colum, data=data)
         try:
-            cur.execute(query)
-            result = cur.fetchall()
+            self.cursor.execute(sql)
+            self.db.commit()
         except Exception as e:
-            msg = traceback.format_exc()
-            msg += '\n\n Query: \n' + query
-            print(msg)
-            cur.close()
-            return None
+            print(" insert DB err ", e)
 
-        cur.close()
+    def readDB(self, schema, table, colum):
+        sql = " SELECT {colum} from {schema}.{table}".format(colum=colum, schema=schema, table=table)
+        try:
+            self.cursor.execute(sql)
+            result = self.cursor.fetchall()
+        except Exception as e:
+            result = (" read DB err", e)
+
         return result
 
+    def updateDB(self, schema, table, colum, value, condition):
+        sql = " UPDATE {schema}.{table} SET {colum}='{value}' WHERE {colum}='{condition}' ".format(schema=schema,
+                                                                                                   table=table,
+                                                                                                   colum=colum,
+                                                                                                   value=value,
+                                                                                                   condition=condition)
+        try:
+            self.cursor.execute(sql)
+            self.db.commit()
+        except Exception as e:
+            print(" update DB err", e)
 
+    def deleteDB(self, schema, table, condition):
+        sql = " delete from {schema}.{table} where {condition} ; ".format(schema=schema, table=table,
+                                                                          condition=condition)
+        try:
+            self.cursor.execute(sql)
+            self.db.commit()
+        except Exception as e:
+            print("delete DB err", e)
